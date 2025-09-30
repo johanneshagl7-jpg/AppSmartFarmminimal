@@ -1,63 +1,113 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { MapContainer, TileLayer, Marker, Polyline } from "react-leaflet";
+import "leaflet/dist/leaflet.css";
+
+// Hilfsfunktion: Abstand Punkt zu Linie
+function perpendicularDistance(latA, lonA, latB, lonB, latP, lonP) {
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const R = 6371000; // Erdradius in m
+
+  const Ax = R * Math.cos(toRad(latA)) * Math.cos(toRad(lonA));
+  const Ay = R * Math.cos(toRad(latA)) * Math.sin(toRad(lonA));
+  const Az = R * Math.sin(toRad(latA));
+
+  const Bx = R * Math.cos(toRad(latB)) * Math.cos(toRad(lonB));
+  const By = R * Math.cos(toRad(latB)) * Math.sin(toRad(lonB));
+  const Bz = R * Math.sin(toRad(latB));
+
+  const Px = R * Math.cos(toRad(latP)) * Math.cos(toRad(lonP));
+  const Py = R * Math.cos(toRad(latP)) * Math.sin(toRad(lonP));
+  const Pz = R * Math.sin(toRad(latP));
+
+  // Richtungsvektoren
+  const AB = [Bx - Ax, By - Ay, Bz - Az];
+  const AP = [Px - Ax, Py - Ay, Pz - Az];
+
+  // Kreuzprodukt für Abstand
+  const cross = [
+    AB[1] * AP[2] - AB[2] * AP[1],
+    AB[2] * AP[0] - AB[0] * AP[2],
+    AB[0] * AP[1] - AB[1] * AP[0],
+  ];
+
+  const area = Math.sqrt(cross[0] ** 2 + cross[1] ** 2 + cross[2] ** 2);
+  const base = Math.sqrt(AB[0] ** 2 + AB[1] ** 2 + AB[2] ** 2);
+  return area / base; // Abstand in m
+}
 
 const GuidanceSystem = () => {
-  const [lat1, setLat1] = useState("");
-  const [lon1, setLon1] = useState("");
-  const [lat2, setLat2] = useState("");
-  const [lon2, setLon2] = useState("");
-  const [width, setWidth] = useState(3);
-  const [lines, setLines] = useState([]);
+  const [latA, setLatA] = useState("");
+  const [lonA, setLonA] = useState("");
+  const [latB, setLatB] = useState("");
+  const [lonB, setLonB] = useState("");
+  const [currentPos, setCurrentPos] = useState(null);
+  const [line, setLine] = useState(null);
+  const [deviation, setDeviation] = useState(null);
 
-  const calculate = () => {
-    if (!lat1 || !lon1 || !lat2 || !lon2) {
-      alert("Bitte alle Koordinaten eingeben!");
+  const setABLine = () => {
+    if (!latA || !lonA || !latB || !lonB) {
+      alert("❌ Bitte A- und B-Punkt eingeben!");
       return;
     }
-
-    const x1 = parseFloat(lat1);
-    const y1 = parseFloat(lon1);
-    const x2 = parseFloat(lat2);
-    const y2 = parseFloat(lon2);
-
-    const angle = Math.atan2(y2 - y1, x2 - x1);
-    const newLines = [];
-    for (let i = -5; i <= 5; i++) {
-      const dx = (i * width * Math.sin(angle)) / 111320;
-      const dy = (i * width * Math.cos(angle)) / 111320;
-      newLines.push({
-        start: { lat: x1 + dx, lon: y1 - dy },
-        end: { lat: x2 + dx, lon: y2 - dy },
-      });
-    }
-    setLines(newLines);
+    setLine([
+      [parseFloat(latA), parseFloat(lonA)],
+      [parseFloat(latB), parseFloat(lonB)],
+    ]);
   };
 
+  // aktuelle GPS-Position holen
+  useEffect(() => {
+    if (navigator.geolocation) {
+      const watch = navigator.geolocation.watchPosition((pos) => {
+        const { latitude, longitude } = pos.coords;
+        setCurrentPos([latitude, longitude]);
+
+        if (line) {
+          const d = perpendicularDistance(
+            line[0][0], line[0][1],
+            line[1][0], line[1][1],
+            latitude, longitude
+          );
+          setDeviation(d.toFixed(2));
+        }
+      });
+      return () => navigator.geolocation.clearWatch(watch);
+    }
+  }, [line]);
+
   return (
-    <div className="max-w-xl mx-auto p-6 rounded-2xl shadow-lg bg-white">
-      <h2 className="text-2xl font-bold mb-4 text-center">🚜 Spurführung (AB-Linien)</h2>
+    <div className="w-full h-[600px] p-4 bg-white rounded-2xl shadow-lg">
+      <h2 className="text-2xl font-bold mb-4 text-center">🚜 Spurführung mit Karte</h2>
+
+      {/* Eingabe A & B */}
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <input type="number" step="any" value={lat1} onChange={(e) => setLat1(e.target.value)} className="p-2 border rounded-md" placeholder="Lat A" />
-        <input type="number" step="any" value={lon1} onChange={(e) => setLon1(e.target.value)} className="p-2 border rounded-md" placeholder="Lon A" />
+        <input type="number" step="any" value={latA} onChange={(e) => setLatA(e.target.value)} className="p-2 border rounded-md" placeholder="Lat A" />
+        <input type="number" step="any" value={lonA} onChange={(e) => setLonA(e.target.value)} className="p-2 border rounded-md" placeholder="Lon A" />
       </div>
       <div className="grid grid-cols-2 gap-3 mb-3">
-        <input type="number" step="any" value={lat2} onChange={(e) => setLat2(e.target.value)} className="p-2 border rounded-md" placeholder="Lat B" />
-        <input type="number" step="any" value={lon2} onChange={(e) => setLon2(e.target.value)} className="p-2 border rounded-md" placeholder="Lon B" />
+        <input type="number" step="any" value={latB} onChange={(e) => setLatB(e.target.value)} className="p-2 border rounded-md" placeholder="Lat B" />
+        <input type="number" step="any" value={lonB} onChange={(e) => setLonB(e.target.value)} className="p-2 border rounded-md" placeholder="Lon B" />
       </div>
-      <div className="mb-3">
-        <input type="number" value={width} onChange={(e) => setWidth(e.target.value)} className="w-full p-2 border rounded-md" placeholder="Arbeitsbreite (m)" />
-      </div>
-      <button onClick={calculate} className="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700">Spuren berechnen</button>
-      {lines.length > 0 && (
-        <div className="mt-4 p-3 rounded-md bg-green-100 text-green-800 text-sm">
-          <h3 className="font-semibold mb-2">Generierte Linien:</h3>
-          <ul className="space-y-1">
-            {lines.map((line, i) => (
-              <li key={i}>
-                Spur {i + 1}: Start ({line.start.lat.toFixed(5)}, {line.start.lon.toFixed(5)}) → Ende ({line.end.lat.toFixed(5)}, {line.end.lon.toFixed(5)})
-              </li>
-            ))}
-          </ul>
+      <button onClick={setABLine} className="w-full bg-green-600 text-white py-2 rounded-md hover:bg-green-700 mb-3">
+        AB-Linie setzen
+      </button>
+
+      {/* Karte */}
+      <MapContainer
+        center={currentPos || [48.2, 16.3]}
+        zoom={16}
+        className="w-full h-[400px] rounded-md"
+      >
+        <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        {line && <Polyline positions={line} color="blue" />}
+        {currentPos && <Marker position={currentPos}></Marker>}
+      </MapContainer>
+
+      {/* Abweichung */}
+      {deviation && (
+        <div className="mt-3 p-3 bg-blue-100 text-blue-800 text-center font-medium rounded-md">
+          Abweichung von der Spur: {deviation} m
         </div>
       )}
     </div>
