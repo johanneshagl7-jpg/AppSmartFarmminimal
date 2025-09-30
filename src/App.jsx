@@ -19,21 +19,21 @@ import {
 } from "./tools";
 
 const toolList = [
-  { name: "Nutrient Balance", component: <NutrientBalance /> },
+  { name: "Nährstoffbilanz", component: <NutrientBalance /> },
   { name: "Organics", component: <Organics /> },
-  { name: "GPS Calculator", component: <GPSCalculator /> },
+  { name: "GPS Rechner", component: <GPSCalculator /> },
   { name: "GPS System", component: <GPSSystem /> },
   { name: "Spurführung", component: <GuidanceSystem /> },
-  { name: "HS180", component: <HS180 /> },
-  { name: "Seed Calc", component: <SeedCalc /> },
-  { name: "Sowing Advisor", component: <SowingAdvisor /> },
-  { name: "Yield Forecast", component: <YieldForecast /> },
-  { name: "Field Time", component: <FieldTime /> },
-  { name: "Power Check", component: <PowerCheck /> },
-  { name: "Tire Pressure", component: <TirePressure /> },
-  { name: "Spray Weather", component: <SprayWeather /> },
-  { name: "Soil Moisture", component: <SoilMoisture /> },
-  { name: "CO₂ Calc", component: <CO2Calc /> },
+  { name: "HS180 Miststreuer", component: <HS180 /> },
+  { name: "Saatgut Rechner", component: <SeedCalc /> },
+  { name: "Aussaat Berater", component: <SowingAdvisor /> },
+  { name: "Ertragsprognose", component: <YieldForecast /> },
+  { name: "Feldzeit", component: <FieldTime /> },
+  { name: "Leistungsbedarf", component: <PowerCheck /> },
+  { name: "Reifendruck", component: <TirePressure /> },
+  { name: "Spritzwetter", component: <SprayWeather /> },
+  { name: "Bodenfeuchte", component: <SoilMoisture /> },
+  { name: "CO₂ Bilanz", component: <CO2Calc /> },
 ];
 
 const App = () => {
