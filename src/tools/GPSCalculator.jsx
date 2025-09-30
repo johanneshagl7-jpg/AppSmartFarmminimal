@@ -11,10 +11,9 @@ export default function GPSCalculator(){
   const [workWidth, setWorkWidth] = useState(20);
   const [field, setField] = useState([]);
 
-  // Hilfsfunktion: Abstand Punkt zu Linie (für AB oder Polyline)
+  // Abstandspunkt zu Leitlinie
   const pointLineDistance = (px, py) => {
     if(mode === "AB" && aPoint && bPoint){
-      // Abstand zur AB-Linie
       const x0=px,y0=py, x1=aPoint.x,y1=aPoint.y, x2=bPoint.x,y2=bPoint.y;
       const num = Math.abs((y2-y1)*x0 - (x2-x1)*y0 + x2*y1 - y2*x1);
       const den = Math.sqrt((y2-y1)**2+(x2-x1)**2);
@@ -34,18 +33,20 @@ export default function GPSCalculator(){
     return 0;
   };
 
+  // Zeichnen
   useEffect(()=>{
     const ctx = canvasRef.current.getContext("2d");
-    ctx.clearRect(0,0,600,400);
+    ctx.fillStyle = "#1a1f2b"; // Raven Hintergrund
+    ctx.fillRect(0,0,600,400);
 
-    // Feld (bearbeitete Flächen) grün einfärben
+    // Feld (bearbeitete Fläche)
     field.forEach(p=>{
-      ctx.fillStyle = "rgba(0,200,0,0.3)";
+      ctx.fillStyle = "rgba(0,255,0,0.3)";
       ctx.fillRect(p.x-workWidth/2, p.y-5, workWidth, 10);
     });
 
-    // Leitlinien zeichnen
-    ctx.strokeStyle = "blue";
+    // Leitlinien
+    ctx.strokeStyle = "#00aaff";
     ctx.lineWidth = 2;
     ctx.beginPath();
     if(mode==="AB" && aPoint && bPoint){
@@ -58,21 +59,28 @@ export default function GPSCalculator(){
     }
     ctx.stroke();
 
-    // Traktor zeichnen
+    // Traktor
     ctx.save();
     ctx.translate(tractor.x, tractor.y);
     ctx.rotate(tractor.heading);
-    ctx.fillStyle="red";
+    ctx.fillStyle="yellow";
     ctx.fillRect(-10,-20,20,40);
+    ctx.fillStyle="white";
+    ctx.beginPath();
+    ctx.moveTo(0,-20);
+    ctx.lineTo(10,-10);
+    ctx.lineTo(-10,-10);
+    ctx.closePath();
+    ctx.fill();
     ctx.restore();
   },[tractor,aPoint,bPoint,polyline,field,workWidth,mode]);
 
-  // Simulation Fahrt mit Drift
+  // Fahrt Simulation
   useEffect(()=>{
     const interval = setInterval(()=>{
       setTractor(t=>{
         const newY = t.y-2;
-        const offset = (Math.sin(Date.now()/1000))*5; // Drift cm
+        const offset = (Math.sin(Date.now()/1000))*10; // Drift simuliert
         setField(f=>[...f,{x:t.x+offset,y:newY}]);
         return {...t,y:newY,offset};
       });
@@ -93,14 +101,23 @@ export default function GPSCalculator(){
 
   const deviation = pointLineDistance(tractor.x,tractor.y);
 
-  return <div className="space-y-2 text-sm">
-    <div className="flex gap-2">
-      <button onClick={()=>{setMode("AB");setAPoint(null);setBPoint(null);}} className="px-2 py-1 bg-blue-500 text-white rounded">AB-Modus</button>
-      <button onClick={()=>{setMode("Polyline");setPolyline([]);}} className="px-2 py-1 bg-green-500 text-white rounded">Polyline-Modus</button>
+  // Abweichung Farbe
+  let devColor = "green";
+  if(deviation>10) devColor="red";
+  else if(deviation>2) devColor="yellow";
+
+  return <div className="bg-gray-900 text-white p-2 rounded-lg">
+    <div className="flex">
+      <canvas ref={canvasRef} width={600} height={400} className="border" onClick={handleCanvasClick}></canvas>
+      <div className="flex flex-col ml-2 space-y-2">
+        <button onClick={()=>{setMode("AB");setAPoint(null);setBPoint(null);}} className="px-3 py-2 bg-blue-600 rounded">AB</button>
+        <button onClick={()=>{setMode("Polyline");setPolyline([]);}} className="px-3 py-2 bg-green-600 rounded">Polyline</button>
+        <button onClick={()=>{setAPoint(null);setBPoint(null);setPolyline([]);setField([]);}} className="px-3 py-2 bg-red-600 rounded">Reset</button>
+        <div className="text-xs">Arbeitsbreite: <input type="number" value={workWidth} onChange={e=>setWorkWidth(+e.target.value)} className="text-black w-16"/></div>
+      </div>
     </div>
-    <canvas ref={canvasRef} width={600} height={400} className="border" onClick={handleCanvasClick}></canvas>
-    <div>Arbeitsbreite: <input type="number" value={workWidth} onChange={e=>setWorkWidth(+e.target.value)} /> m</div>
-    <div>Abweichung: {deviation.toFixed(1)} cm</div>
-    <div className="text-xs text-gray-500">Klick ins Feld: {mode==="AB" ? "erst A, dann B" : "Polyline-Punkte setzen"}</div>
+    <div className="text-center mt-3 text-3xl font-bold" style={{color:devColor}}>
+      {deviation.toFixed(1)} cm
+    </div>
   </div>;
 }
