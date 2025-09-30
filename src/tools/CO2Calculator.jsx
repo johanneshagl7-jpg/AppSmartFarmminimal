@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const GPSCalculator = () => {
+const CO2Calculator = () => {
   const [input, setInput] = useState("");
   const [result, setResult] = useState(null);
 
@@ -10,7 +10,7 @@ const GPSCalculator = () => {
 
   return (
     <div className="max-w-md mx-auto p-6 rounded-2xl shadow-lg bg-white">
-      <h2 className="text-2xl font-bold mb-4 text-center">GPSCalculator</h2>
+      <h2 className="text-2xl font-bold mb-4 text-center">CO2Calculator</h2>
       <input
         type="text"
         value={input}
@@ -33,4 +33,4 @@ const GPSCalculator = () => {
   );
 };
 
-export default GPSCalculator;
+export default CO2Calculator;
