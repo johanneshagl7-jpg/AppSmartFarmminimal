@@ -1,64 +1,32 @@
+import React, { useState, useEffect } from "react";
+import { Routes, Route, Link } from "react-router-dom";
+import Dashboard from "./pages/Dashboard.jsx";
+import Tools from "./pages/Tools.jsx";
 
-import React, { useState } from "react";
-import {
-  NutrientBalance,
-  Organics,
-  GPSCalculator,
-  GPSSystem,
-  GuidanceSystem,
-  HS180,
-  SeedCalc,
-  SowingAdvisor,
-  YieldForecast,
-  FieldTime,
-  PowerCheck,
-  TirePressure,
-  SprayWeather,
-  SoilMoisture,
-  CO2Calc,
-} from "./tools";
-
-const toolList = [
-  { name: "Nährstoffbilanz", component: <NutrientBalance /> },
-  { name: "Organics", component: <Organics /> },
-  { name: "GPS Rechner", component: <GPSCalculator /> },
-  { name: "GPS System", component: <GPSSystem /> },
-  { name: "Spurführung", component: <GuidanceSystem /> },
-  { name: "HS180 Miststreuer", component: <HS180 /> },
-  { name: "Saatgut Rechner", component: <SeedCalc /> },
-  { name: "Aussaat Berater", component: <SowingAdvisor /> },
-  { name: "Ertragsprognose", component: <YieldForecast /> },
-  { name: "Feldzeit", component: <FieldTime /> },
-  { name: "Leistungsbedarf", component: <PowerCheck /> },
-  { name: "Reifendruck", component: <TirePressure /> },
-  { name: "Spritzwetter", component: <SprayWeather /> },
-  { name: "Bodenfeuchte", component: <SoilMoisture /> },
-  { name: "CO₂ Bilanz", component: <CO2Calc /> },
-];
-
-const App = () => {
-  const [activeTool, setActiveTool] = useState(toolList[0]);
+export default function App(){
+  const [dark, setDark] = useState(false);
+  useEffect(()=>{
+    if(dark){ document.documentElement.classList.add("dark"); }
+    else{ document.documentElement.classList.remove("dark"); }
+  },[dark]);
 
   return (
-    <div className="flex min-h-screen">
-      <div className="w-72 bg-gray-800 text-white p-4">
-        <h1 className="text-2xl font-bold mb-6">⚙️ Agrar Tools Portal</h1>
-        <ul>
-          {toolList.map((tool, index) => (
-            <li key={index}>
-              <button
-                onClick={() => setActiveTool(tool)}
-                className={`w-full text-left px-3 py-2 rounded-md mb-1 ${activeTool.name === tool.name ? "bg-green-600" : "hover:bg-gray-700"}`}
-              >
-                {tool.name}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </div>
-      <div className="flex-1 p-6">{activeTool.component}</div>
+    <div className="min-h-screen flex flex-col dark:text-gray-100">
+      <header className="p-4 flex justify-between items-center bg-emerald-600 dark:bg-emerald-800 text-white">
+        <Link to="/" className="font-bold">🌾 SmartFarming Portal</Link>
+        <button onClick={()=>setDark(!dark)} className="px-3 py-1 rounded-lg border">
+          {dark ? "☀️ Light" : "🌙 Dark"}
+        </button>
+      </header>
+      <main className="flex-1 p-4">
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/tools/:id" element={<Tools />} />
+        </Routes>
+      </main>
+      <footer className="p-3 text-center text-xs text-gray-500 dark:text-gray-400">
+        © {new Date().getFullYear()} SmartFarming Portal · <Link to="/impressum">Impressum</Link>
+      </footer>
     </div>
   );
-};
-
-export default App;
+}

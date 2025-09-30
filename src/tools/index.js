@@ -1,10 +1,6 @@
-
 export { default as NutrientBalance } from "./NutrientBalance.jsx";
 export { default as Organics } from "./Organics.jsx";
 export { default as GPSCalculator } from "./GPSCalculator.jsx";
-export { default as GPSSystem } from "./GPSSystem.jsx";
-export { default as GuidanceSystem } from "./GuidanceSystem.jsx";
-export { default as HS180 } from "./HS180.jsx";
 export { default as SeedCalc } from "./SeedCalc.jsx";
 export { default as SowingAdvisor } from "./SowingAdvisor.jsx";
 export { default as YieldForecast } from "./YieldForecast.jsx";
@@ -14,3 +10,4 @@ export { default as TirePressure } from "./TirePressure.jsx";
 export { default as SprayWeather } from "./SprayWeather.jsx";
 export { default as SoilMoisture } from "./SoilMoisture.jsx";
 export { default as CO2Calc } from "./CO2Calc.jsx";
+export { default as HS180 } from "./HS180.jsx";
