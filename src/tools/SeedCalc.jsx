@@ -1,0 +1,1 @@
+export default function SeedCalc(){ return <h2>SeedCalc.jsx läuft!</h2> }

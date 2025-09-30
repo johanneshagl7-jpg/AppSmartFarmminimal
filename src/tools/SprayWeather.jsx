@@ -1,0 +1,1 @@
+export default function SprayWeather(){ return <h2>SprayWeather.jsx läuft!</h2> }

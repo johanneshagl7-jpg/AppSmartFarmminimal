@@ -1,0 +1,1 @@
+export default function SowingAdvisor(){ return <h2>SowingAdvisor.jsx läuft!</h2> }

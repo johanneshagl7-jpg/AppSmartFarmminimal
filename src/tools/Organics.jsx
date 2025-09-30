@@ -1,0 +1,1 @@
+export default function Organics(){ return <h2>Organics.jsx läuft!</h2> }

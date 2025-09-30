@@ -1,0 +1,1 @@
+export default function YieldForecast(){ return <h2>YieldForecast.jsx läuft!</h2> }

@@ -1,0 +1,1 @@
+export default function SoilMoisture(){ return <h2>SoilMoisture.jsx läuft!</h2> }

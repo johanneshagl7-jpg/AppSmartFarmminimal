@@ -1,0 +1,1 @@
+export default function HS180(){ return <h2>HS180.jsx läuft!</h2> }

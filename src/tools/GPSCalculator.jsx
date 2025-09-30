@@ -1,0 +1,1 @@
+export default function GPSCalculator(){ return <h2>GPSCalculator.jsx läuft!</h2> }

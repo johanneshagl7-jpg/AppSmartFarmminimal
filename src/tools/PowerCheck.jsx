@@ -1,0 +1,1 @@
+export default function PowerCheck(){ return <h2>PowerCheck.jsx läuft!</h2> }

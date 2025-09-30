@@ -1,0 +1,1 @@
+export default function TirePressure(){ return <h2>TirePressure.jsx läuft!</h2> }

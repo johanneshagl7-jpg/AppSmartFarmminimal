@@ -1,0 +1,1 @@
+export default function CO2Calc(){ return <h2>CO2Calc.jsx läuft!</h2> }
