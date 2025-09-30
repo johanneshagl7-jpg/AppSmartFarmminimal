@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Polyline } from "react-leaflet";
 import L from "leaflet";
-
 import "leaflet/dist/leaflet.css";
 
 // Traktor-Icon
@@ -19,6 +18,7 @@ export default function GPSCalculator(){
   const [lines, setLines] = useState([]);
   const [workWidth, setWorkWidth] = useState(6);
   const [deviation, setDeviation] = useState(0);
+  const [mode, setMode] = useState(null); // "A" oder "B"
 
   // Live GPS
   useEffect(() => {
@@ -33,24 +33,36 @@ export default function GPSCalculator(){
     return () => navigator.geolocation.clearWatch(watch);
   }, []);
 
-  // Linie aus AB berechnen + Parallellinien
+  // Linie + Spurlinien berechnen (nur zwischen A und B)
   useEffect(() => {
     if(aPoint && bPoint){
+      const newLines = [];
       const lat1 = aPoint[0], lon1 = aPoint[1];
       const lat2 = bPoint[0], lon2 = bPoint[1];
-      const mainLine = [aPoint, bPoint];
-      const newLines = [mainLine];
 
-      // Dummy: Arbeitsbreite als parallele Linien simulieren (sehr vereinfacht)
+      // Richtung berechnen
+      const dx = lon2-lon1;
+      const dy = lat2-lat1;
+      const len = Math.sqrt(dx*dx+dy*dy);
+      const nx = -(dy/len);
+      const ny = dx/len;
+
+      // Hauptlinie
+      newLines.push([aPoint,bPoint]);
+
+      // Parallellinien links und rechts in Arbeitsbreite
       for(let i=1;i<=5;i++){
-        newLines.push([[lat1, lon1+ i*workWidth*0.00001],[lat2, lon2+ i*workWidth*0.00001]]);
-        newLines.push([[lat1, lon1- i*workWidth*0.00001],[lat2, lon2- i*workWidth*0.00001]]);
+        const shift = i*workWidth*0.00001; // Umrechnung grob
+        const shiftLat = ny*shift;
+        const shiftLon = nx*shift;
+        newLines.push([[lat1+shiftLat, lon1+shiftLon],[lat2+shiftLat, lon2+shiftLon]]);
+        newLines.push([[lat1-shiftLat, lon1-shiftLon],[lat2-shiftLat, lon2-shiftLon]]);
       }
       setLines(newLines);
     }
   },[aPoint,bPoint,workWidth]);
 
-  // Abweichung berechnen (sehr vereinfacht: Distanz zu AB-Linie)
+  // Abweichung berechnen (Distanz zur AB-Linie)
   useEffect(()=>{
     if(position && aPoint && bPoint){
       const [x0,y0] = position;
@@ -63,10 +75,11 @@ export default function GPSCalculator(){
     }
   },[position,aPoint,bPoint]);
 
+  // Map-Klick → aktiven Punkt setzen
   const handleMapClick = (e) => {
     const latlng = [e.latlng.lat, e.latlng.lng];
-    if(!aPoint) setAPoint(latlng);
-    else if(!bPoint) setBPoint(latlng);
+    if(mode==="A"){ setAPoint(latlng); setMode(null); }
+    if(mode==="B"){ setBPoint(latlng); setMode(null); }
   };
 
   let devColor = "lime";
@@ -78,6 +91,8 @@ export default function GPSCalculator(){
       <MapContainer center={[48.2,16.37]} zoom={18} className="w-full h-full" whenCreated={(map)=>map.on("click",handleMapClick)}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
         {position && <Marker position={position} icon={tractorIcon}/>}
+        {aPoint && <Marker position={aPoint}/>}
+        {bPoint && <Marker position={bPoint}/>}
         {lines.map((ln,i)=>(<Polyline key={i} positions={ln} color="blue"/>))}
       </MapContainer>
       <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-3xl font-bold px-4 py-2 rounded" style={{background:"rgba(0,0,0,0.5)",color:devColor}}>
@@ -85,7 +100,9 @@ export default function GPSCalculator(){
       </div>
       <div className="absolute top-2 right-2 bg-white text-black p-2 rounded space-y-2">
         <div>Arbeitsbreite: <input type="number" value={workWidth} onChange={e=>setWorkWidth(+e.target.value)} className="w-16"/></div>
-        <button onClick={()=>{setAPoint(null);setBPoint(null);setLines([])}} className="px-2 py-1 bg-red-500 text-white rounded">Reset AB</button>
+        <button onClick={()=>setMode("A")} className="px-2 py-1 bg-blue-500 text-white rounded w-full">Setze A</button>
+        <button onClick={()=>setMode("B")} className="px-2 py-1 bg-green-500 text-white rounded w-full">Setze B</button>
+        <button onClick={()=>{setAPoint(null);setBPoint(null);setLines([]);}} className="px-2 py-1 bg-red-600 text-white rounded w-full">Reset</button>
       </div>
     </div>
   );

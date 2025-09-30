@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Routes, Route, Link } from "react-router-dom";
 import Dashboard from "./pages/Dashboard.jsx";
 import Tools from "./pages/Tools.jsx";
+import * as ToolComps from "./tools";
 
 export default function App(){
   const [dark, setDark] = useState(false);
@@ -22,6 +23,7 @@ export default function App(){
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/tools/:id" element={<Tools />} />
+          <Route path="/gps" element={<ToolComps.GPSCalculator />} />
         </Routes>
       </main>
       <footer className="p-3 text-center text-xs text-gray-500 dark:text-gray-400">
