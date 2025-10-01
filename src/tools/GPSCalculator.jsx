@@ -35,6 +35,33 @@ function distanceToLine(point, A, B) {
   return den === 0 ? 0 : num / den; // Meter
 }
 
+// Berechne Parallellinien über Projektion
+function getParallels(A, B, workWidth, count=40) {
+  if (!A || !B) return [];
+  const CRS = L.CRS.EPSG3857;
+  const projA = CRS.project(L.latLng(A[0], A[1]));
+  const projB = CRS.project(L.latLng(B[0], B[1]));
+
+  const dx = projB.x - projA.x;
+  const dy = projB.y - projA.y;
+  const len = Math.sqrt(dx*dx + dy*dy);
+  if (len === 0) return [];
+
+  const nx = -dy / len;
+  const ny = dx / len;
+
+  let lines = [];
+  for (let i=-count;i<=count;i++){
+    if(i===0) continue;
+    const offX = i * workWidth * nx;
+    const offY = i * workWidth * ny;
+    const projAoff = CRS.unproject(L.point(projA.x+offX, projA.y+offY));
+    const projBoff = CRS.unproject(L.point(projB.x+offX, projB.y+offY));
+    lines.push([[projAoff.lat, projAoff.lng],[projBoff.lat,projBoff.lng]]);
+  }
+  return lines;
+}
+
 export default function GPSCalculator(){
   const [position, setPosition] = useState(null);
   const [aPoint, setAPoint] = useState(null);
@@ -55,30 +82,7 @@ export default function GPSCalculator(){
     ? (distanceToLine(position, aPoint, bPoint) * 100).toFixed(1)
     : null;
 
-  // Berechne parallele Linien
-  let parallels = [];
-  if (aPoint && bPoint) {
-    const [x1, y1] = aPoint;
-    const [x2, y2] = bPoint;
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const len = Math.sqrt(dx*dx + dy*dy);
-    if (len > 0) {
-      const ux = dx/len;
-      const uy = dy/len;
-      const nx = -uy;
-      const ny = ux;
-      for (let i=-40;i<=40;i++){
-        if(i===0) continue;
-        const offX = i*workWidth*nx/111111; // grobe Umrechnung in Grad (~111km = 1°)
-        const offY = i*workWidth*ny/111111;
-        parallels.push([
-          [x1+offX,y1+offY],
-          [x2+offX,y2+offY]
-        ]);
-      }
-    }
-  }
+  const parallels = getParallels(aPoint, bPoint, workWidth, 40);
 
   return (
     <div className="space-y-2 text-sm">
