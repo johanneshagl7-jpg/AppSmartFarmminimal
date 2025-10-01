@@ -24,6 +24,17 @@ function LocationWatcher({ setPosition }) {
   return null;
 }
 
+// Abstand Punkt zu Linie (A-B) in Metern
+function distanceToLine(point, A, B) {
+  if (!point || !A || !B) return 0;
+  const [x0, y0] = point;
+  const [x1, y1] = A;
+  const [x2, y2] = B;
+  const num = Math.abs((y2 - y1) * x0 - (x2 - x1) * y0 + x2*y1 - y2*x1);
+  const den = Math.sqrt((y2 - y1) ** 2 + (x2 - x1) ** 2);
+  return den === 0 ? 0 : num / den; // Meter
+}
+
 export default function GPSCalculator(){
   const [position, setPosition] = useState(null);
   const [aPoint, setAPoint] = useState(null);
@@ -40,6 +51,10 @@ export default function GPSCalculator(){
     if (position) setPath(prev => [...prev, position]);
   }, [position]);
 
+  const deviation = aPoint && bPoint && position
+    ? (distanceToLine(position, aPoint, bPoint) * 100).toFixed(1)
+    : null;
+
   return (
     <div className="space-y-2 text-sm">
       <div className="flex gap-2">
@@ -47,6 +62,7 @@ export default function GPSCalculator(){
         <button onClick={setB} className="px-3 py-1 bg-green-500 text-white rounded">B setzen</button>
       </div>
       <div>Arbeitsbreite: <input type="number" value={workWidth} onChange={e=>setWorkWidth(+e.target.value)} /> m</div>
+      {deviation && <div>Abweichung: {deviation} cm</div>}
       <MapContainer center={[48.2,16.3]} zoom={18} style={{height:"400px",width:"100%"}}>
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
         <LocationWatcher setPosition={setPosition} />
