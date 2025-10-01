@@ -24,7 +24,7 @@ function LocationWatcher({ setPosition }) {
   return null;
 }
 
-// Abstand Punkt zu Linie (A-B) in Metern
+// Hilfsfunktion: Abstand Punkt zu Linie (A-B) in Metern
 function distanceToLine(point, A, B) {
   if (!point || !A || !B) return 0;
   const [x0, y0] = point;
@@ -55,6 +55,31 @@ export default function GPSCalculator(){
     ? (distanceToLine(position, aPoint, bPoint) * 100).toFixed(1)
     : null;
 
+  // Berechne parallele Linien
+  let parallels = [];
+  if (aPoint && bPoint) {
+    const [x1, y1] = aPoint;
+    const [x2, y2] = bPoint;
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const len = Math.sqrt(dx*dx + dy*dy);
+    if (len > 0) {
+      const ux = dx/len;
+      const uy = dy/len;
+      const nx = -uy;
+      const ny = ux;
+      for (let i=-40;i<=40;i++){
+        if(i===0) continue;
+        const offX = i*workWidth*nx/111111; // grobe Umrechnung in Grad (~111km = 1°)
+        const offY = i*workWidth*ny/111111;
+        parallels.push([
+          [x1+offX,y1+offY],
+          [x2+offX,y2+offY]
+        ]);
+      }
+    }
+  }
+
   return (
     <div className="space-y-2 text-sm">
       <div className="flex gap-2">
@@ -67,7 +92,10 @@ export default function GPSCalculator(){
         <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"/>
         <LocationWatcher setPosition={setPosition} />
         {position && <Marker position={position} icon={tractorIcon}/>}
+        {aPoint && <Marker position={aPoint}/>}
+        {bPoint && <Marker position={bPoint}/>}
         {line.length===2 && <Polyline positions={line} color="blue"/>}
+        {parallels.map((pl,i)=>(<Polyline key={i} positions={pl} color="gray" />))}
         {path.length>1 && <Polyline positions={path} color="green"/>}
       </MapContainer>
     </div>
