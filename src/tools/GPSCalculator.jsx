@@ -1,111 +1,121 @@
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 export default function GPSCalculator(){
   const canvasRef = useRef(null);
+  const [mode, setMode] = useState("AB"); // "AB" oder "Polyline"
   const [aPoint, setAPoint] = useState(null);
   const [bPoint, setBPoint] = useState(null);
-  const [mode, setMode] = useState(null); // "A" oder "B"
-  const [workWidth, setWorkWidth] = useState(20); // Meter
-  const [deviation,setDeviation] = useState(0);
-  const [position,setPosition] = useState(null);
+  const [polyline, setPolyline] = useState([]);
+  const [tractor, setTractor] = useState({x:300, y:350, heading:0, offset:0});
+  const [workWidth, setWorkWidth] = useState(20);
+  const [field, setField] = useState([]);
 
-  // GPS vom Gerät
-  useEffect(()=>{
-    if(!navigator.geolocation) return;
-    const watch = navigator.geolocation.watchPosition(
-      (pos)=>{
-        setPosition({lat:pos.coords.latitude, lon:pos.coords.longitude});
-      },
-      (err)=>console.error(err),
-      { enableHighAccuracy:true }
-    );
-    return ()=>navigator.geolocation.clearWatch(watch);
-  },[]);
+  const pointLineDistance = (px, py) => {
+    if(mode === "AB" && aPoint && bPoint){
+      const x0=px,y0=py, x1=aPoint.x,y1=aPoint.y, x2=bPoint.x,y2=bPoint.y;
+      const num = Math.abs((y2-y1)*x0 - (x2-x1)*y0 + x2*y1 - y2*x1);
+      const den = Math.sqrt((y2-y1)**2+(x2-x1)**2);
+      return num/den;
+    } else if(mode==="Polyline" && polyline.length>1){
+      let minDist = Infinity;
+      for(let i=0;i<polyline.length-1;i++){
+        const x1=polyline[i].x,y1=polyline[i].y;
+        const x2=polyline[i+1].x,y2=polyline[i+1].y;
+        const num = Math.abs((y2-y1)*px - (x2-x1)*py + x2*y1 - y2*x1);
+        const den = Math.sqrt((y2-y1)**2+(x2-x1)**2);
+        const dist = num/den;
+        if(dist<minDist) minDist=dist;
+      }
+      return minDist;
+    }
+    return 0;
+  };
 
-  // Meter pro Grad grob (für Österreich ca.)
-  const meterPerLat = 111320;
-  const meterPerLon = 75000;
-
-  // Zeichnen
   useEffect(()=>{
     const ctx = canvasRef.current.getContext("2d");
-    ctx.fillStyle = "#1a1f2b";
-    ctx.fillRect(0,0,600,400);
+    ctx.clearRect(0,0,600,400);
 
-    // Mittelpunkt = Traktor fix
-    const cx=300, cy=200;
+    field.forEach(p=>{
+      ctx.fillStyle = "rgba(0,200,0,0.3)";
+      ctx.fillRect(p.x-workWidth/2, p.y-5, workWidth, 10);
+    });
 
-    // AB + Spurlinien
-    if(aPoint && bPoint){
-      // Delta in Meter
-      const dx = (bPoint.lon-aPoint.lon)*meterPerLon;
-      const dy = (bPoint.lat-aPoint.lat)*meterPerLat;
-      const len = Math.sqrt(dx*dx+dy*dy);
-      const nx = -(dy/len);
-      const ny = dx/len;
+    ctx.strokeStyle = "blue";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    if(mode==="AB" && aPoint && bPoint){
+      ctx.moveTo(aPoint.x,aPoint.y);
+      ctx.lineTo(bPoint.x,bPoint.y);
+    }
+    if(mode==="Polyline" && polyline.length>1){
+      ctx.moveTo(polyline[0].x,polyline[0].y);
+      polyline.slice(1).forEach(p=>ctx.lineTo(p.x,p.y));
+    }
+    ctx.stroke();
 
-      // Alle Linien zeichnen
-      ctx.strokeStyle="#00aaff";
-      ctx.lineWidth=2;
-      for(let i=-5;i<=5;i++){
-        const shift = i*workWidth;
+    if(aPoint){
+      ctx.fillStyle = "blue";
+      ctx.beginPath();
+      ctx.arc(aPoint.x, aPoint.y, 5, 0, 2*Math.PI);
+      ctx.fill();
+    }
+    if(bPoint){
+      ctx.fillStyle = "blue";
+      ctx.beginPath();
+      ctx.arc(bPoint.x, bPoint.y, 5, 0, 2*Math.PI);
+      ctx.fill();
+    }
+    if(mode==="Polyline"){
+      polyline.forEach(p=>{
+        ctx.fillStyle = "green";
         ctx.beginPath();
-        ctx.moveTo(cx+nx*shift,cy+ny*shift-1000);
-        ctx.lineTo(cx+nx*shift,cy+ny*shift+1000);
-        ctx.stroke();
-      }
-
-      // Abweichung berechnen wenn GPS vorhanden
-      if(position){
-        const px = (position.lon-aPoint.lon)*meterPerLon;
-        const py = (position.lat-aPoint.lat)*meterPerLat;
-        const num = Math.abs(dy*px - dx*py);
-        const den = Math.sqrt(dx*dx+dy*dy);
-        const dist = (num/den);
-        setDeviation(dist.toFixed(1));
-      }
+        ctx.arc(p.x, p.y, 4, 0, 2*Math.PI);
+        ctx.fill();
+      });
     }
 
-    // Traktor (fix mittig)
-    ctx.fillStyle="yellow";
-    ctx.fillRect(cx-10,cy-20,20,40);
-    ctx.fillStyle="white";
-    ctx.beginPath();
-    ctx.moveTo(cx,cy-20);
-    ctx.lineTo(cx+10,cy-10);
-    ctx.lineTo(cx-10,cy-10);
-    ctx.closePath();
-    ctx.fill();
+    ctx.save();
+    ctx.translate(tractor.x, tractor.y);
+    ctx.rotate(tractor.heading);
+    ctx.fillStyle="red";
+    ctx.fillRect(-10,-20,20,40);
+    ctx.restore();
+  },[tractor,aPoint,bPoint,polyline,field,workWidth,mode]);
 
-  },[aPoint,bPoint,position,workWidth]);
+  useEffect(()=>{
+    const interval = setInterval(()=>{
+      setTractor(t=>{
+        const newY = t.y-2;
+        const offset = (Math.sin(Date.now()/1000))*5;
+        setField(f=>[...f,{x:t.x+offset,y:newY}]);
+        return {...t,y:newY,offset};
+      });
+    },200);
+    return ()=>clearInterval(interval);
+  },[]);
 
   const handleCanvasClick=(e)=>{
     const rect = canvasRef.current.getBoundingClientRect();
-    const pt = {x:e.clientX-rect.left,y:e.clientY-rect.top};
-    // Klickpunkte als Dummy Koordinaten speichern
-    const lon = pt.x/10;
-    const lat = pt.y/10;
-    if(mode==="A"){ setAPoint({lat,lon}); setMode(null); }
-    if(mode==="B"){ setBPoint({lat,lon}); setMode(null); }
+    const point = {x:e.clientX-rect.left,y:e.clientY-rect.top};
+    if(mode==="AB"){
+      if(!aPoint) setAPoint(point);
+      else if(!bPoint) setBPoint(point);
+    } else if(mode==="Polyline"){
+      setPolyline([...polyline,point]);
+    }
   };
 
-  let devColor="lime";
-  if(deviation>20) devColor="yellow";
-  if(deviation>50) devColor="red";
+  const deviation = pointLineDistance(tractor.x,tractor.y);
 
-  return <div className="bg-gray-900 text-white p-2 rounded-lg">
-    <div className="flex">
-      <canvas ref={canvasRef} width={600} height={400} className="border" onClick={handleCanvasClick}></canvas>
-      <div className="flex flex-col ml-2 space-y-2">
-        <button onClick={()=>setMode("A")} className="px-3 py-2 bg-blue-600 rounded">Setze A</button>
-        <button onClick={()=>setMode("B")} className="px-3 py-2 bg-green-600 rounded">Setze B</button>
-        <button onClick={()=>{setAPoint(null);setBPoint(null);setDeviation(0);}} className="px-3 py-2 bg-red-600 rounded">Reset</button>
-        <div className="text-xs">Arbeitsbreite: <input type="number" value={workWidth} onChange={e=>setWorkWidth(+e.target.value)} className="text-black w-16"/></div>
-      </div>
+  return <div className="space-y-2 text-sm">
+    <div className="flex gap-2">
+      <button onClick={()=>{setMode("AB");setAPoint(null);setBPoint(null);}} className="px-2 py-1 bg-blue-500 text-white rounded">AB-Modus</button>
+      <button onClick={()=>{setMode("Polyline");setPolyline([]);}} className="px-2 py-1 bg-green-500 text-white rounded">Polyline-Modus</button>
     </div>
-    <div className="text-center mt-3 text-3xl font-bold" style={{color:devColor}}>
-      Abweichung: {deviation} cm
-    </div>
+    <canvas ref={canvasRef} width={600} height={400} className="border" onClick={handleCanvasClick}></canvas>
+    <div>Arbeitsbreite: <input type="number" value={workWidth} onChange={e=>setWorkWidth(+e.target.value)} /> m</div>
+    <div>Abweichung: {deviation.toFixed(1)} cm</div>
+    <div className="text-xs text-gray-500">Klick ins Feld: {mode==="AB" ? "erst A, dann B" : "Polyline-Punkte setzen"}</div>
   </div>;
 }
